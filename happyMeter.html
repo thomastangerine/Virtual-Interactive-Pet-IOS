@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #map {
+      position: absolute;
+      top: 0px;
+      left: 0;
+      bottom: 0px;
+      right: 0;
+      }
+
+    #totalBar {
+      height: 50px;
+      width: 200px;
+      position: absolute;
+      background-color: blue;
+    }
+
+    #happyBar {
+      height: 50px;
+      position: absolute;
+      width: 75%;
+      background-color: red;
+    }
+
+    button {
+      position: absolute;
+      top: 70%;
+      width: 250px;
+      height: 80px;
+      display: none;
+    }
+  </style>
+  <script
+  src="https://code.jquery.com/jquery-3.3.1.min.js"
+  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+  crossorigin="anonymous"></script>
+<title>OctalDog Travel</title>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="totalBar">
+    <div id="happyBar"></div>
+  </div>
+
+  <button>Check In!</button>
+  <script>
+
+    var happyMeter = 75;
+    var latLonList = [];
+    var mapCenter;
+    //const request = require('request');
+
+    /* map functions */
+    function myMap() {
+      var mapCanvas = document.getElementById("map");
+      var mapOptions = {
+        center: new google.maps.LatLng(34.0703,-118.4457),
+        zoom:18,
+        mapTypeId:google.maps.MapTypeId.ROADMAP
+      };
+      map = new google.maps.Map(mapCanvas,mapOptions);
+      mapCenter = map.getCenter();
+
+      /* get json of venues, mark location on map */
+      $.get('https://api.foursquare.com/v2/venues/explore?ll=34.0689,-118.4452&client_id=PHPYTFG0OU3ALNMODYC1X432CCQVOCNGW2GMRQM4JP2WVRZD&client_secret=JTLINVTFX3WRRIGESGVNZLXO2GNJ1HLWZN4GOZR52RH5JVQX&v=20180101', function(data) {
+        console.log(data);
+        var venues = data.response.groups[0].items;
+        for (i=0;i<venues.length; i++) {
+          console.log(venues[i])
+          var lat = venues[i].venue.location.lat;
+          var lon = venues[i].venue.location.lng;
+
+          var tuple = [lat, lon];
+          latLonList.push(tuple);
+
+          var marker = new google.maps.Marker({
+            position: {lat: lat, lng: lon},
+            map: map
+          })
+        }
+      });
+      var visited = new Set();
+
+      map.addListener('center_changed', function() {
+        mapCenter = map.getCenter();
+        for (i=0; i<latLonList.length; i++) {
+          console.log((Math.abs(mapCenter.lat() - latLonList[i][0]) + Math.abs(mapCenter.lng()-latLonList[i][1])))
+          if (!visited.has(latLonList[i]) && (((Math.abs(mapCenter.lat() - latLonList[i][0]) + Math.abs(mapCenter.lng()-latLonList[i][1])) < .001))) {
+            console.log('SHOWING BUTTON')
+            $("button").show(1000);
+
+            $("button").click(function(){
+              if (happyMeter + 5 > 100) {
+                happyMeter = 100;
+              } else {
+                happyMeter += 5;
+              }
+              document.getElementById('happyBar').style.width = happyMeter + "%";
+              $("button").hide(1000);
+            });
+          }
+        }
+      });
+
+    }
+
+
+
+    setInterval(function() {
+      if (happyMeter - 3 < 0) {
+        happyMeter = 0;
+      } else {
+        happyMeter -= 3;
+      }
+      console.log(happyMeter);
+      document.getElementById('happyBar').style.width = happyMeter + "%";
+    }, 1000);
+
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCgIUwFXqK7Xlx7njbN1B_VRq4510hgdJ4&callback=myMap"></script>
+<script src="jquery-3.3.1.min.js"></script>
+</body>
+</html>
